@@ -34,7 +34,15 @@ def ortho_init(scale=1.0):
         return (scale * q[:shape[0], :shape[1]]).astype(np.float32)
     return _ortho_init
 
-def conv(x, scope, *, nf, rf, stride, pad='VALID', init_scale=1.0, data_format='NHWC', one_dim_bias=False):
+def conv(x, scope, **kwargs):
+    nf = kwargs['nf']
+    rf = kwargs['rf']
+    stride = kwargs['stride']
+    pad = kwargs.get('pad','VALID')
+    init_scale = kwargs.get('init_scale',1.0)
+    data_format = kwargs.get('data_format','NHWC')
+    one_dim_bias = kwargs.get('one_dim_bias',False)
+
     if data_format == 'NHWC':
         channel_ax = 3
         strides = [1, stride, stride, 1]
@@ -55,7 +63,7 @@ def conv(x, scope, *, nf, rf, stride, pad='VALID', init_scale=1.0, data_format='
             b = tf.reshape(b, bshape)
         return tf.nn.conv2d(x, w, strides=strides, padding=pad, data_format=data_format) + b
 
-def fc(x, scope, nh, *, init_scale=1.0, init_bias=0.0):
+def fc(x, scope, nh, init_scale=1.0, init_bias=0.0):
     with tf.variable_scope(scope):
         nin = x.get_shape()[1].value
         w = tf.get_variable("w", [nin, nh], initializer=ortho_init(init_scale))

@@ -215,7 +215,10 @@ class StartDoingRandomActionsWrapper(gym.Wrapper):
                 self.some_random_steps()
         return self.last_obs, rew, done, info
 
-def make_retro(*, game, state, max_episode_steps, **kwargs):
+def make_retro(**kwargs):
+    game = kwargs['game']
+    state = kwargs['state']
+    max_episode_steps = kwargs['max_episode_steps']
     import retro
     env = retro.make(game, state, **kwargs)
     env = StochasticFrameSkip(env, n=4, stickprob=0.25)

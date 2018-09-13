@@ -47,7 +47,12 @@ class Dataset(object):
         return Dataset(data_map, deterministic)
 
 
-def iterbatches(arrays, *, num_batches=None, batch_size=None, shuffle=True, include_final_partial_batch=True):
+def iterbatches(arrays, **kwargs):
+    num_batches=kwargs.get('num_batches', None)
+    batch_size=kwargs.get('batch_size', None)
+    shuffle=kwargs.get('shuffle', True)
+    include_final_partial_batch=kwargs.get('include_final_partial_batch', True)
+
     assert (num_batches is None) != (batch_size is None), 'Provide num_batches or batch_size, but not both'
     arrays = tuple(map(np.asarray, arrays))
     n = arrays[0].shape[0]

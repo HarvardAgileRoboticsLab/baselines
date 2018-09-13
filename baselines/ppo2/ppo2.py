@@ -17,8 +17,16 @@ from baselines.common.tf_util import initialize
 from baselines.common.mpi_util import sync_from_root
 
 class Model(object):
-    def __init__(self, *, policy, ob_space, ac_space, nbatch_act, nbatch_train,
-                nsteps, ent_coef, vf_coef, max_grad_norm):
+    def __init__(self, **kwargs):
+        policy = kwargs['policy']
+        ob_space = kwargs['ob_space']
+        ac_space = kwargs['ac_space']
+        nbatch_act = kwargs['nbatch_act']
+        nbatch_train = kwargs['nbatch_train']
+        nsteps = kwargs['nsteps']
+        ent_coef = kwargs['ent_coef']
+        vf_coef = kwargs['vf_coef']
+        max_grad_norm = kwargs['max_grad_norm']
         sess = get_session()
 
         with tf.variable_scope('ppo2_model', reuse=tf.AUTO_REUSE):
@@ -91,8 +99,16 @@ class Model(object):
 
 class Runner(AbstractEnvRunner):
 
-    def __init__(self, *, env, model, nsteps, gamma, lam):
-        super().__init__(env=env, model=model, nsteps=nsteps)
+    def __init__(self, **kwargs):
+        env = kwargs['env']
+        model = kwargs['model']
+        nsteps = kwargs['nsteps']
+        gamma = kwargs['gamma']
+        lam = kwargs['lam']
+        manditory_keys = ['env', 'model', 'nsteps', 'gamma', 'lam']
+        for key in manditory_keys:
+            del kwargs[key]
+        super(Runner, self).__init__(env=env, model=model, nsteps=nsteps)
         self.lam = lam
         self.gamma = gamma
 
@@ -134,8 +150,9 @@ class Runner(AbstractEnvRunner):
             delta = mb_rewards[t] + self.gamma * nextvalues * nextnonterminal - mb_values[t]
             mb_advs[t] = lastgaelam = delta + self.gamma * self.lam * nextnonterminal * lastgaelam
         mb_returns = mb_advs + mb_values
-        return (*map(sf01, (mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs)),
-            mb_states, epinfos)
+        return tuple(
+            map(sf01, (mb_obs, mb_returns, mb_dones, mb_actions, mb_values,
+                       mb_neglogpacs))) + (mb_states, epinfos)
 # obs, returns, masks, actions, values, neglogpacs, states = runner.run()
 def sf01(arr):
     """
@@ -149,10 +166,7 @@ def constfn(val):
         return val
     return f
 
-def learn(*, network, env, total_timesteps, seed=None, nsteps=2048, ent_coef=0.0, lr=3e-4,
-            vf_coef=0.5,  max_grad_norm=0.5, gamma=0.99, lam=0.95,
-            log_interval=10, nminibatches=4, noptepochs=4, cliprange=0.2,
-            save_interval=0, load_path=None, **network_kwargs):
+def learn(**network_kwargs):
     '''
     Learn policy using PPO algorithm (https://arxiv.org/abs/1707.06347)
 
@@ -207,6 +221,35 @@ def learn(*, network, env, total_timesteps, seed=None, nsteps=2048, ent_coef=0.0
 
 
     '''
+    network = network_kwargs['network']
+    env = network_kwargs['my_env']
+    total_timesteps = network_kwargs['total_timesteps']
+    seed = network_kwargs.get('seed', None)
+    nsteps = network_kwargs.get('nsteps', 2048)
+    ent_coef = network_kwargs.get('ent_coef', 0.0)
+    lr = network_kwargs.get('lr', 3e-4)
+    vf_coef = network_kwargs.get('vf_coef', 0.5)
+    max_grad_norm = network_kwargs.get('max_grad_norm', 0.5)
+    gamma = network_kwargs.get('gamma', 0.99)
+    lam = network_kwargs.get('lam', 0.95)
+    log_interval = network_kwargs.get('log_interval', 10)
+    nminibatches = network_kwargs.get('nminibatches', 4)
+    noptepochs = network_kwargs.get('noptepochs', 4)
+    cliprange = network_kwargs.get('cliprange', 0.2)
+    save_interval = network_kwargs.get('save_interval', 0)
+    load_path = network_kwargs.get('load_path', None)
+
+    manditory_keys = ['network', 'my_env', 'total_timesteps', 'seed']
+    optional_keys = ['nsteps', 'ent_coef', 'lr',
+        'vf_coef', 'max_grad_norm', 'gamma', 'lam', 'log_interval', 'nminibatches',
+        'noptepochs', 'cliprange', 'save_interval', 'load_path']
+    for key in manditory_keys:
+        del network_kwargs[key]
+    for key in optional_keys:
+        try:
+            del network_kwargs[key]
+        except KeyError:
+            pass
 
     set_global_seeds(seed)
 
@@ -268,7 +311,7 @@ def learn(*, network, env, total_timesteps, seed=None, nsteps=2048, ent_coef=0.0
                     mbflatinds = flatinds[mbenvinds].ravel()
                     slices = (arr[mbflatinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
                     mbstates = states[mbenvinds]
-                    mblossvals.append(model.train(lrnow, cliprangenow, *slices, mbstates))
+                    mblossvals.append(model.train(lrnow, cliprangenow, *slices, states=mbstates))
 
         lossvals = np.mean(mblossvals, axis=0)
         tnow = time.time()
