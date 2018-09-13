@@ -16,9 +16,10 @@ class DummyVecEnv(VecEnv):
 
         env_fns: iterable of callables      functions that build environments
         """
+
         self.envs = [fn() for fn in env_fns]
         env = self.envs[0]
-        VecEnv.__init__(self, len(env_fns), env.observation_space, env.action_space)
+        super(DummyVecEnv, self).__init__(len(env_fns), env.observation_space, env.action_space)
         obs_space = env.observation_space
 
         self.keys, shapes, dtypes = obs_space_info(obs_space)
@@ -53,7 +54,7 @@ class DummyVecEnv(VecEnv):
                 obs = self.envs[e].reset()
             self._save_obs(e, obs)
         return (self._obs_from_buf(), np.copy(self.buf_rews), np.copy(self.buf_dones),
-                self.buf_infos.copy())
+                list(self.buf_infos))
 
     def reset(self):
         for e in range(self.num_envs):

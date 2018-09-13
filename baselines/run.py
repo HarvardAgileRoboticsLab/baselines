@@ -30,6 +30,11 @@ try:
 except ImportError:
     roboschool = None
 
+try:
+    import gym_drake
+except ImportError:
+    pass
+
 _game_envs = defaultdict(set)
 for env in gym.envs.registry.all():
     # TODO: solve this with regexes
@@ -73,7 +78,7 @@ def train(args, extra_args):
     print('Training {} on {}:{} with arguments \n{}'.format(args.alg, env_type, env_id, alg_kwargs))
 
     model = learn(
-        env=env,
+        my_env=env,
         seed=seed,
         total_timesteps=total_timesteps,
         **alg_kwargs

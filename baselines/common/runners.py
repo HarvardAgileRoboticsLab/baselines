@@ -1,8 +1,15 @@
 import numpy as np
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 
-class AbstractEnvRunner(ABC):
-    def __init__(self, *, env, model, nsteps):
+class AbstractEnvRunner(object):
+    __metaclass__ = ABCMeta
+    def __init__(self, **kwargs):
+        env = kwargs['env']
+        model = kwargs['model']
+        nsteps = kwargs['nsteps']
+        manditory_keys = ['env', 'model', 'nsteps']
+        for key in manditory_keys:
+            del kwargs[key]
         self.env = env
         self.model = model
         self.nenv = nenv = env.num_envs if hasattr(env, 'num_envs') else 1

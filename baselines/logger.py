@@ -7,6 +7,10 @@ import time
 import datetime
 import tempfile
 from collections import defaultdict
+try:
+  from pathlib import Path
+except ImportError:
+  from pathlib2 import Path  # python 2 backport
 
 DEBUG = 10
 INFO = 20
@@ -106,7 +110,7 @@ class CSVOutputFormat(KVWriter):
 
     def writekvs(self, kvs):
         # Add our current row to the history
-        extra_keys = kvs.keys() - self.keys
+        extra_keys = set(kvs.keys()) - set(self.keys)
         if extra_keys:
             self.keys.extend(extra_keys)
             self.file.seek(0)
@@ -139,7 +143,7 @@ class TensorBoardOutputFormat(KVWriter):
     Dumps key/value pairs into TensorBoard's numeric format.
     """
     def __init__(self, dir):
-        os.makedirs(dir, exist_ok=True)
+        Path(dir).mkdir(parents=True, exist_ok=True)
         self.dir = dir
         self.step = 1
         prefix = 'events'
@@ -170,7 +174,7 @@ class TensorBoardOutputFormat(KVWriter):
             self.writer = None
 
 def make_output_format(format, ev_dir, log_suffix=''):
-    os.makedirs(ev_dir, exist_ok=True)
+    Path(ev_dir).mkdir(parents=True, exist_ok=True)
     if format == 'stdout':
         return HumanOutputFormat(sys.stdout)
     elif format == 'log':
@@ -222,10 +226,11 @@ def getkvs():
     return Logger.CURRENT.name2val
 
 
-def log(*args, level=INFO):
+def log(*args, **kwargs):
     """
     Write the sequence of args, with no separators, to the console and output files (if you've configured an output file).
     """
+    level=kwargs.get('level',INFO)
     Logger.CURRENT.log(*args, level=level)
 
 def debug(*args):
@@ -321,7 +326,8 @@ class Logger(object):
         self.name2val.clear()
         self.name2cnt.clear()
 
-    def log(self, *args, level=INFO):
+    def log(self, *args, **kwargs):
+        level=kwargs.get('level', INFO)
         if self.level <= level:
             self._do_log(args)
 
@@ -351,7 +357,7 @@ def configure(dir=None, format_strs=None):
         dir = osp.join(tempfile.gettempdir(),
             datetime.datetime.now().strftime("openai-%Y-%m-%d-%H-%M-%S-%f"))
     assert isinstance(dir, str)
-    os.makedirs(dir, exist_ok=True)
+    Path(dir).mkdir(parents=True, exist_ok=True)
 
     log_suffix = ''
     rank = 0

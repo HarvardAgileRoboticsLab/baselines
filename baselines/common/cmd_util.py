@@ -38,8 +38,10 @@ def make_vec_env(env_id, env_type, num_env, seed, wrapper_kwargs=None, start_ind
             else: return env
         return _thunk
     set_global_seeds(seed)
-    if num_env > 1: return SubprocVecEnv([make_env(i + start_index) for i in range(num_env)])
-    else: return DummyVecEnv([make_env(start_index)])
+    if num_env > 1:
+        return SubprocVecEnv([make_env(i + start_index) for i in range(num_env)])
+    else:
+        return DummyVecEnv([make_env(start_index)])
 
 def make_mujoco_env(env_id, seed, reward_scale=1.0):
     """
