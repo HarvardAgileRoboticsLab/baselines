@@ -11,6 +11,11 @@ from baselines.common.policies import build_policy
 from baselines.common.runners import AbstractEnvRunner
 from baselines.common.tf_util import get_session, save_variables, load_variables
 from baselines.common.mpi_adam_optimizer import MpiAdamOptimizer
+try:
+  from pathlib import Path
+except ImportError:
+  from pathlib2 import Path  # python 2 backport
+
 
 from mpi4py import MPI
 from baselines.common.tf_util import initialize
@@ -332,7 +337,7 @@ def learn(**network_kwargs):
                 logger.dumpkvs()
         if save_interval and (update % save_interval == 0 or update == 1) and logger.get_dir() and MPI.COMM_WORLD.Get_rank() == 0:
             checkdir = osp.join(logger.get_dir(), 'checkpoints')
-            os.makedirs(checkdir, exist_ok=True)
+            Path(checkdir).mkdir(exist_ok=True, parents=True)
             savepath = osp.join(checkdir, '%.5i'%update)
             print('Saving to', savepath)
             model.save(savepath)
